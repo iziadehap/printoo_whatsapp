@@ -147,3 +147,8 @@
 2026/06/07-12:07:27.399 ae82 Generated table #762@0: 57880 keys, 997318 bytes
 2026/06/07-12:07:27.399 ae82 Compacted 1@0 + 1@1 files => 997318 bytes
 2026/06/07-12:07:27.404 ae82 compacted to: files[ 0 1 6 0 0 0 0 ]
+2026/06/07-12:08:10.868 ae82 Level-0 table #764: started
+2026/06/07-12:08:10.946 ae82 Level-0 table #764: 992971 bytes OK
+2026/06/07-12:08:10.964 ae82 Delete type=0 #760
+2026/06/07-12:08:10.964 ae82 Delete type=2 #759
+2026/06/07-12:08:10.964 ae82 Delete type=2 #761
