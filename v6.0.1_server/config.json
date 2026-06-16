@@ -1,7 +1,0 @@
-{
-  "documentPagePrice": 0.5,
-  "imagePagePrice": 0.75,
-  "blankPageSeparator": true,
-  "fetchMessageLimit": 100,
-  "beepNotification": true
-}
