@@ -8,19 +8,25 @@
     "dev": "nodemon server.js",
     "test": "node test-api.js"
   },
-  "keywords": ["whatsapp", "printing", "api"],
+  "keywords": [
+    "whatsapp",
+    "printing",
+    "api"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "whatsapp-web.js": "^1.23.0",
-    "qrcode-terminal": "^0.12.0",
+    "axios": "^1.6.0",
+    "better-queue": "^3.8.12",
     "chalk": "^4.1.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "fs-extra": "^11.1.1",
     "pdf-parse": "^1.1.1",
     "pdfkit": "^0.14.0",
-    "axios": "^1.6.0"
+    "qrcode-terminal": "^0.12.0",
+    "socket.io": "^4.8.3",
+    "whatsapp-web.js": "^1.23.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

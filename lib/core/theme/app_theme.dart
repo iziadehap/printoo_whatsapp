@@ -40,50 +40,51 @@ class AppColors {
 
 class AppTheme {
   static ThemeData get dark => ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.bgBase,
-        fontFamily: 'Segoe UI',
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.accent,
-          secondary: AppColors.blue,
-          surface: AppColors.bgSurface,
-          error: AppColors.red,
-        ),
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: AppColors.textPrimary, fontSize: 13),
-          bodyMedium: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-          bodySmall: TextStyle(color: AppColors.textMuted, fontSize: 11),
-          titleMedium: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600),
-          titleSmall: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w500),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: AppColors.bgSurface,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: AppColors.border),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: AppColors.border),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-        ),
-        dropdownMenuTheme: const DropdownMenuThemeData(
-          textStyle: TextStyle(color: AppColors.textPrimary, fontSize: 12),
-        ),
-        dividerColor: AppColors.border,
-      );
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: AppColors.bgBase,
+    fontFamily: 'Segoe UI',
+    colorScheme: const ColorScheme.dark(
+      primary: AppColors.accent,
+      secondary: AppColors.blue,
+      surface: AppColors.bgSurface,
+      error: AppColors.red,
+    ),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: AppColors.textPrimary, fontSize: 13),
+      bodyMedium: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+      bodySmall: TextStyle(color: AppColors.textMuted, fontSize: 11),
+      titleMedium: TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+      ),
+      titleSmall: TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.bgSurface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+    ),
+    dropdownMenuTheme: const DropdownMenuThemeData(
+      textStyle: TextStyle(color: AppColors.textPrimary, fontSize: 12),
+    ),
+    dividerColor: AppColors.border,
+  );
 }

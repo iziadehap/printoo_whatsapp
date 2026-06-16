@@ -1,6 +1,8 @@
 import 'dart:io' as dart_io;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printoo_whatsapp/home/presentation/widgets/fullscreen_doc_widget.dart';
+import 'package:printoo_whatsapp/home/presentation/widgets/fullscreen_image_viewer.dart';
 import '../../domain/entities/print_job_file.dart';
 import '../providers/app_providers.dart';
 import '../../../core/theme/app_theme.dart';
@@ -159,39 +161,103 @@ class MainPanel extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    // build printer slider
-                    DropdownMenu<String>(
-                      // 🌟 قمنا بتغييرها لتقرأ أحدث طابعة نشطة (سواء تم اختيارها بالاختصار أو بالماوس)
-                      initialSelection: activePrinter,
-                      label: const Text('Printer'),
-                      dropdownMenuEntries: printers.isNotEmpty
-                          ? printers.map((printer) {
-                              return DropdownMenuEntry(
-                                value: printer,
-                                label: printer,
-                              );
-                            }).toList()
-                          : [
-                              const DropdownMenuEntry(
-                                value: '',
-                                label: 'Loading printers...',
-                                enabled: false,
-                              ),
-                            ],
-                      onSelected: (printer) {
-                        if (printer != null && printer.isNotEmpty) {
-                          // 🌟 تحديث الـ Index عند قيام المستخدم بالاختيار يدوياً بالماوس
-                          final index = printers.indexOf(printer);
-                          if (index != -1) {
-                            ref
-                                    .read(selectedPrinterIndexProvider.notifier)
-                                    .state =
-                                index;
-                          }
-                        }
-                      },
-                    ),
+                    Container(
+                      // Use constraints to give the box a bounded max width while inside an unconstrained parent Row
+                      constraints: const BoxConstraints(maxWidth: 260),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.bgCard,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.border.withOpacity(0.5),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.print_outlined,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 8),
 
+                          // Expanded safely takes up the rest of the 260px container width
+                          Expanded(
+                            child: SizedBox(
+                              height: 36,
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value:
+                                      (activePrinter != null &&
+                                          printers.contains(activePrinter))
+                                      ? activePrinter
+                                      : null,
+                                  isExpanded:
+                                      true, // Forces text truncation to work inside the bounded space
+                                  alignment: Alignment.centerLeft,
+                                  dropdownColor: AppColors.bgSurface,
+                                  icon: const Icon(
+                                    Icons.arrow_drop_down,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  items: printers.map((printer) {
+                                    return DropdownMenuItem<String>(
+                                      value: printer,
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          printer,
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (printer) {
+                                    if (printer != null && printer.isNotEmpty) {
+                                      final index = printers.indexOf(printer);
+                                      if (index != -1) {
+                                        ref
+                                                .read(
+                                                  selectedPrinterIndexProvider
+                                                      .notifier,
+                                                )
+                                                .state =
+                                            index;
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+
+                          SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              onPressed: () async {
+                                ref.read(logMessageProvider.notifier).state =
+                                    'INFO: Refreshing printer list...';
+                                await ref
+                                    .read(printersProvider.notifier)
+                                    .refresh();
+                                ref.read(logMessageProvider.notifier).state =
+                                    'INFO: Printer list refreshed successfully.';
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const Spacer(),
                     const Icon(
                       Icons.photo_size_select_large,
@@ -621,6 +687,29 @@ class MediaFileCard extends StatelessWidget {
     final cardWidth = thumbSize + 24;
     final isDoc = file.type == 'document';
 
+    final IconData typeIcon;
+    final Color typeColor;
+
+    if (!isDoc) {
+      typeIcon = Icons.image_rounded;
+      typeColor = Colors.greenAccent;
+    } else {
+      final origType = file.originalType?.toLowerCase() ?? 'pdf';
+      if (origType.contains('doc')) {
+        typeIcon = Icons.description;
+        typeColor = AppColors.blue;
+      } else if (origType.contains('xls')) {
+        typeIcon = Icons.table_chart;
+        typeColor = Colors.green;
+      } else if (origType.contains('ppt')) {
+        typeIcon = Icons.slideshow;
+        typeColor = Colors.orange;
+      } else {
+        typeIcon = Icons.picture_as_pdf;
+        typeColor = AppColors.red;
+      }
+    }
+
     return InkWell(
       onTap: onToggleSelected,
       borderRadius: BorderRadius.circular(10),
@@ -655,18 +744,21 @@ class MediaFileCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Thumbnail Stack: Only internal tap opens preview
+            // Thumbnail Stack
             Stack(
               children: [
                 GestureDetector(
                   onTap: () {
+                    bool isDoc = file.type == 'document';
+
                     Navigator.of(context).push(
                       PageRouteBuilder(
                         opaque: false,
                         barrierDismissible: true,
                         barrierColor: Colors.black87,
-                        pageBuilder: (_, __, ___) =>
-                            _FullScreenImageViewer(file: file),
+                        pageBuilder: (_, __, ___) => isDoc
+                            ? FullScreenDocViewer(file: file)
+                            : FullScreenImageViewer(file: file),
                         transitionsBuilder: (_, anim, __, child) =>
                             FadeTransition(opacity: anim, child: child),
                       ),
@@ -695,8 +787,8 @@ class MediaFileCard extends StatelessWidget {
                   top: 4,
                   left: 4,
                   child: SizedBox(
-                    width: 18,
-                    height: 18,
+                    width: 24,
+                    height: 24,
                     child: Checkbox(
                       value: file.selected,
                       onChanged: (_) => onToggleSelected(),
@@ -705,7 +797,7 @@ class MediaFileCard extends StatelessWidget {
                   ),
                 ),
 
-                // NEW: Visual Type Badge Overlapping Bottom Right Corner
+                // Visual Type Badge
                 Positioned(
                   bottom: 4,
                   right: 4,
@@ -715,18 +807,14 @@ class MediaFileCard extends StatelessWidget {
                       color: Colors.black.withOpacity(0.75),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      isDoc ? Icons.picture_as_pdf : Icons.image_rounded,
-                      size: 12,
-                      color: isDoc ? AppColors.red : Colors.greenAccent,
-                    ),
+                    child: Icon(typeIcon, size: 12, color: typeColor),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
 
-            // Filename Metadata Label Strings
+            // Filename Label
             Text(
               file.filename,
               style: const TextStyle(
@@ -762,148 +850,139 @@ class MediaFileCard extends StatelessWidget {
               ],
             ),
 
-            // Adjustments management tray configurations
-            if (file.selected) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 6),
-                child: Divider(
-                  color: AppColors.border,
-                  height: 1,
-                  thickness: 0.5,
-                ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              child: Divider(
+                color: AppColors.border,
+                height: 1,
+                thickness: 0.5,
               ),
+            ),
 
-              // Absorbs parent layout row click mechanics cleanly
-              GestureDetector(
-                onTap: () {},
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // const Text(
-                        //   'Copies:',
-                        //   style: TextStyle(
-                        //     color: AppColors.textSecondary,
-                        //     fontSize: 10,
-                        //     fontWeight: FontWeight.w500,
-                        //   ),
-                        // ),
-                        Row(
+            // Control Tray Panel (Keeps exact same sizing footprint when unselected)
+            Opacity(
+              opacity: file.selected ? 1.0 : 0.0,
+              child: IgnorePointer(
+                ignoring: !file.selected,
+                child: GestureDetector(
+                  onTap: () {},
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Elegant Copies Control Bar
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.bgSurface,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: AppColors.border,
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             InkWell(
-                              borderRadius: BorderRadius.circular(4),
                               onTap: () {
-                                if (file.copies > 1)
+                                if (file.copies > 1) {
                                   onUpdate(
                                     file.copyWith(copies: file.copies - 1),
                                   );
+                                }
                               },
+                              borderRadius: const BorderRadius.horizontal(
+                                left: Radius.circular(6),
+                              ),
                               child: const Padding(
-                                padding: EdgeInsets.all(2),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 child: Icon(
-                                  Icons.remove_circle_outline,
-                                  size: 30,
+                                  Icons.remove,
+                                  size: 12,
                                   color: AppColors.textSecondary,
                                 ),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
+                            Container(
+                              alignment: Alignment.center,
+                              constraints: const BoxConstraints(minWidth: 22),
                               child: Text(
                                 file.copies.toString(),
                                 style: const TextStyle(
                                   color: AppColors.textPrimary,
-                                  fontSize: 16,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
                             InkWell(
-                              borderRadius: BorderRadius.circular(4),
                               onTap: () => onUpdate(
                                 file.copyWith(copies: file.copies + 1),
                               ),
+                              borderRadius: const BorderRadius.horizontal(
+                                right: Radius.circular(6),
+                              ),
                               child: const Padding(
-                                padding: EdgeInsets.all(2),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 child: Icon(
-                                  Icons.add_circle_outline,
-                                  size: 30,
+                                  Icons.add,
+                                  size: 12,
                                   color: AppColors.textSecondary,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 6),
 
-                    if (isDoc) ...[
-                      const SizedBox(height: 4),
+                      // Duplex Control Configured cleanly as a Checkbox Row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Duplex:',
+                          Text(
+                            '2-Sided',
                             style: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: isDoc
+                                  ? AppColors.textSecondary
+                                  : Colors.transparent,
                               fontSize: 10,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          SizedBox(
-                            height: 18,
-                            child: DropdownButton<String>(
-                              value: file.duplex,
-                              underline: const SizedBox(),
-                              iconSize: 12,
-                              icon: const Icon(
-                                Icons.arrow_drop_down,
-                                color: AppColors.textMuted,
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'simplex',
-                                  child: Text(
-                                    'Simp',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                          isDoc
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: Checkbox(
+                                    value: file.duplex == 'duplex',
+                                    activeColor: AppColors.accent,
+                                    onChanged: (bool? checked) {
+                                      if (checked != null) {
+                                        onUpdate(
+                                          file.copyWith(
+                                            duplex: checked
+                                                ? 'duplex'
+                                                : 'simplex',
+                                          ),
+                                        );
+                                      }
+                                    },
                                   ),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'duplex',
-                                  child: Text(
-                                    'Dupl',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (v) {
-                                if (v != null)
-                                  onUpdate(file.copyWith(duplex: v));
-                              },
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                              ),
-                              dropdownColor: AppColors.bgSurface,
-                            ),
-                          ),
+                                )
+                              : const SizedBox(width: 20, height: 20),
                         ],
                       ),
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -917,161 +996,177 @@ class MediaFileCard extends StatelessWidget {
   }
 }
 
+// // Dummy Full Screen Viewer Placeholder to prevent compile errors
+// class _FullScreenImageViewer extends StatelessWidget {
+//   final PrintJobFile file;
+//   const _FullScreenImageViewer({required this.file});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       backgroundColor: Colors.black,
+//       body: GestureDetector(
+//         onTap: () => Navigator.of(context).pop(),
+//         child: Center(child: Image.file(dart_io.File(file.absolutePath))),
+//       ),
+//     );
+//   }
+// }
 // ── Full-Screen Overlay Canvas UI ────────────────────────────────────────────
 
-class _FullScreenImageViewer extends StatefulWidget {
-  final PrintJobFile file;
-  const _FullScreenImageViewer({required this.file});
+// class _FullScreenImageViewer extends StatefulWidget {
+//   final PrintJobFile file;
+//   const _FullScreenImageViewer({required this.file});
 
-  @override
-  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
-}
+//   @override
+//   State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+// }
 
-class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
-  final TransformationController _transformCtrl = TransformationController();
+// class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
+//   final TransformationController _transformCtrl = TransformationController();
 
-  @override
-  void dispose() {
-    _transformCtrl.dispose();
-    super.dispose();
-  }
+//   @override
+//   void dispose() {
+//     _transformCtrl.dispose();
+//     super.dispose();
+//   }
 
-  void _resetZoom() => _transformCtrl.value = Matrix4.identity();
+//   void _resetZoom() => _transformCtrl.value = Matrix4.identity();
 
-  @override
-  Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: FocusNode()..requestFocus(),
-      autofocus: true,
-      onKeyEvent: (_) => Navigator.of(context).pop(),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: Container(color: Colors.black),
-            ),
+//   @override
+//   Widget build(BuildContext context) {
+//     return KeyboardListener(
+//       focusNode: FocusNode()..requestFocus(),
+//       autofocus: true,
+//       onKeyEvent: (_) => Navigator.of(context).pop(),
+//       child: Scaffold(
+//         backgroundColor: Colors.transparent,
+//         body: Stack(
+//           children: [
+//             GestureDetector(
+//               onTap: () => Navigator.of(context).pop(),
+//               child: Container(color: Colors.black),
+//             ),
 
-            Center(
-              child: GestureDetector(
-                onDoubleTap: _resetZoom,
-                child: InteractiveViewer(
-                  transformationController: _transformCtrl,
-                  minScale: 0.5,
-                  maxScale: 8.0,
-                  child: widget.file.type == 'document'
-                      ? PdfThumbnail(
-                          absolutePath: widget.file.absolutePath,
-                          size: 340,
-                        )
-                      : Image.file(
-                          dart_io.File(widget.file.absolutePath),
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              color: AppColors.textMuted,
-                              size: 64,
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-            ),
+//             Center(
+//               child: GestureDetector(
+//                 onDoubleTap: _resetZoom,
+//                 child: InteractiveViewer(
+//                   transformationController: _transformCtrl,
+//                   minScale: 0.5,
+//                   maxScale: 8.0,
+//                   child: widget.file.type == 'document'
+//                       ? PdfThumbnail(
+//                           absolutePath: widget.file.absolutePath,
+//                           size: 340,
+//                         )
+//                       : Image.file(
+//                           dart_io.File(widget.file.absolutePath),
+//                           fit: BoxFit.contain,
+//                           errorBuilder: (_, __, ___) => const Center(
+//                             child: Icon(
+//                               Icons.broken_image_outlined,
+//                               color: AppColors.textMuted,
+//                               size: 64,
+//                             ),
+//                           ),
+//                         ),
+//                 ),
+//               ),
+//             ),
 
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.black.withOpacity(0.8), Colors.transparent],
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Material(
-                      color: Colors.white.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () => Navigator.of(context).pop(),
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        widget.file.filename,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Material(
-                      color: Colors.white.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: _resetZoom,
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Icon(
-                            Icons.zoom_out_map,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+//             Positioned(
+//               top: 0,
+//               left: 0,
+//               right: 0,
+//               child: Container(
+//                 padding: const EdgeInsets.symmetric(
+//                   horizontal: 16,
+//                   vertical: 14,
+//                 ),
+//                 decoration: BoxDecoration(
+//                   gradient: LinearGradient(
+//                     begin: Alignment.topCenter,
+//                     end: Alignment.bottomCenter,
+//                     colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+//                   ),
+//                 ),
+//                 child: Row(
+//                   children: [
+//                     Material(
+//                       color: Colors.white.withOpacity(0.12),
+//                       borderRadius: BorderRadius.circular(20),
+//                       child: InkWell(
+//                         borderRadius: BorderRadius.circular(20),
+//                         onTap: () => Navigator.of(context).pop(),
+//                         child: const Padding(
+//                           padding: EdgeInsets.all(8),
+//                           child: Icon(
+//                             Icons.close,
+//                             color: Colors.white,
+//                             size: 20,
+//                           ),
+//                         ),
+//                       ),
+//                     ),
+//                     const SizedBox(width: 12),
+//                     Expanded(
+//                       child: Text(
+//                         widget.file.filename,
+//                         style: const TextStyle(
+//                           color: Colors.white,
+//                           fontSize: 14,
+//                           fontWeight: FontWeight.w500,
+//                         ),
+//                         maxLines: 1,
+//                         overflow: TextOverflow.ellipsis,
+//                       ),
+//                     ),
+//                     Material(
+//                       color: Colors.white.withOpacity(0.12),
+//                       borderRadius: BorderRadius.circular(20),
+//                       child: InkWell(
+//                         borderRadius: BorderRadius.circular(20),
+//                         onTap: _resetZoom,
+//                         child: const Padding(
+//                           padding: EdgeInsets.all(8),
+//                           child: Icon(
+//                             Icons.zoom_out_map,
+//                             color: Colors.white,
+//                             size: 18,
+//                           ),
+//                         ),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ),
 
-            Positioned(
-              bottom: 20,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Pinch to zoom  ·  Double-tap to reset  ·  Tap background to exit',
-                    style: TextStyle(color: Colors.white70, fontSize: 11),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//             Positioned(
+//               bottom: 20,
+//               left: 0,
+//               right: 0,
+//               child: Center(
+//                 child: Container(
+//                   padding: const EdgeInsets.symmetric(
+//                     horizontal: 14,
+//                     vertical: 8,
+//                   ),
+//                   decoration: BoxDecoration(
+//                     color: Colors.black54,
+//                     borderRadius: BorderRadius.circular(20),
+//                   ),
+//                   child: const Text(
+//                     'Pinch to zoom  ·  Double-tap to reset  ·  Tap background to exit',
+//                     style: TextStyle(color: Colors.white70, fontSize: 11),
+//                   ),
+//                 ),
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

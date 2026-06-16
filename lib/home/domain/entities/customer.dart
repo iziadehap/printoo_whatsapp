@@ -4,6 +4,7 @@ class Customer {
   final String number;
   final String displayPhone;
   final String relativeTime;
+  final String? profilePicUrl;  
 
   Customer({
     required this.id,
@@ -11,6 +12,7 @@ class Customer {
     required this.number,
     required this.displayPhone,
     required this.relativeTime,
+    this.profilePicUrl,
   });
 
   factory Customer.fromJson(Map<String, dynamic> json) => Customer(
@@ -18,6 +20,7 @@ class Customer {
     name: json['name'] ?? '',
     number: json['number'] ?? '',
     displayPhone: json['displayPhone'] ?? '',
-    relativeTime: json['relativeTime'] ?? '',
+    relativeTime: json['relativeTime'] ?? '', 
+    profilePicUrl: json['profilePicUrl'],
   );
 }

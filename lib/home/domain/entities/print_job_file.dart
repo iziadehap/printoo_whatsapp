@@ -12,6 +12,7 @@ class PrintJobFile {
   int? startPage;
   int? endPage;
   bool selected;
+  final String? originalType;
 
   PrintJobFile({
     required this.id,
@@ -25,6 +26,7 @@ class PrintJobFile {
     this.startPage,
     this.endPage,
     this.selected = true,
+    this.originalType,
   });
 
   PrintJobFile copyWith({
@@ -33,6 +35,8 @@ class PrintJobFile {
     int? startPage,
     int? endPage,
     bool? selected,
+    bool clearStartPage = false,
+    bool clearEndPage = false,
   }) => PrintJobFile(
     id: id,
     filename: filename,
@@ -42,9 +46,10 @@ class PrintJobFile {
     sizeBytes: sizeBytes,
     copies: copies ?? this.copies,
     duplex: duplex ?? this.duplex,
-    startPage: startPage ?? this.startPage,
-    endPage: endPage ?? this.endPage,
+    startPage: clearStartPage ? null : (startPage ?? this.startPage),
+    endPage: clearEndPage ? null : (endPage ?? this.endPage),
     selected: selected ?? this.selected,
+    originalType: originalType,
   );
 
   factory PrintJobFile.fromJson(Map<String, dynamic> json) => PrintJobFile(
@@ -54,6 +59,7 @@ class PrintJobFile {
     type: json['type'] ?? 'image',
     pages: json['pages'] ?? 0,
     sizeBytes: json['sizeBytes'] ?? 0,
+    originalType: json['originalType'],
   );
 
   Map<String, dynamic> toJson() => {
@@ -63,5 +69,6 @@ class PrintJobFile {
     'duplex': duplex,
     if (type == 'document' && startPage != null) 'startPage': startPage,
     if (type == 'document' && endPage != null) 'endPage': endPage,
+    if (originalType != null) 'originalType': originalType,
   };
 }

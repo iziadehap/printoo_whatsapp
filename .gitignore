@@ -45,7 +45,7 @@ app.*.map.json
 /android/app/release
 
 
-/v6.0.1_server/wwebjs_auth/
+/v6.0.1_server/.wwebjs_auth/
 /v6.0.1_server/temp/
 /v6.0.1_server/config.json/
 /v6.0.1_server/node_modules/

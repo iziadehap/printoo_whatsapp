@@ -279,5 +279,5 @@ flutter test
 ## License
 
 ISC (backend). Add a license for the Flutter app before public release.
-
+ 
 **Versions:** Flutter UI v6.0.0 · Backend v6.1.0

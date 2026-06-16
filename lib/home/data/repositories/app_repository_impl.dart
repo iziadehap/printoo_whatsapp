@@ -1,7 +1,14 @@
+// =============================================================================
+// app_repository_impl.dart  (updated)
+// Change: printJobs() now forwards startPage / endPage inside customOverride
+// for every document file, enabling Ghostscript's -dFirstPage / -dLastPage.
+// =============================================================================
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:printoo_whatsapp/home/domain/entities/media.dart';
 import 'package:printoo_whatsapp/home/domain/entities/printer_shourtcut.dart';
+import 'package:printoo_whatsapp/home/domain/repositories/app_repository.dart';
 
 import '../../domain/entities/app_status.dart';
 import '../../domain/entities/customer.dart';
@@ -9,7 +16,7 @@ import '../../domain/entities/print_job_file.dart';
 import '../datasources/api_client.dart';
 import 'package:hive_ce/hive_ce.dart';
 
-class AppRepository {
+class AppRepositoryImpl implements AppRepository {
   // ─── Status ──────────────────────────────────────────────────────────────
   Future<AppStatus> getStatus() async {
     try {
@@ -49,17 +56,6 @@ class AppRepository {
     }
   }
 
-  // // ─── Printer From Cash ─────────────────────────────────────────────────────────────
-  // Future<String> getprinterFromCash(int number) async {
-  //   try {
-  //     var box = await Hive.openBox('printers');
-  //     return box.get(number) ?? '';
-  //   } catch (e) {
-  //     debugPrint('[AppRepository.getprinterFromCash] error: $e');
-  //     rethrow;
-  //   }
-  // }
-
   Future<int> getSavedCopyCount() async {
     try {
       var box = await Hive.openBox('copyCount');
@@ -80,14 +76,11 @@ class AppRepository {
     }
   }
 
-  // ─── جلب الاختصارات بأمان تـام ─────────────────────────────────────────────────────────────
   Future<List<PrinterShourtcut>> getSavedPrinterShortcuts() async {
     try {
-      // التأكد إذا كان الصندوق مفتوحاً بالنوع الصحيح، وإلا نقوم بفتحه
       final box = Hive.isBoxOpen('printerShortcuts')
           ? Hive.box<PrinterShourtcut>('printerShortcuts')
           : await Hive.openBox<PrinterShourtcut>('printerShortcuts');
-
       return box.values.toList();
     } catch (e) {
       debugPrint('[AppRepository.getSavedPrinterShortcuts] error: $e');
@@ -95,19 +88,15 @@ class AppRepository {
     }
   }
 
-  // ─── حفظ الاختصارات بأمان تـام ─────────────────────────────────────────────────────────────
   Future<void> putPrinterFromCash(
     List<PrinterShourtcut> printerShortcuts,
   ) async {
     try {
-      // استخدام نفس النوع الصريح دائماً لمنع الـ HiveError 🌟
       final box = Hive.isBoxOpen('printerShortcuts')
           ? Hive.box<PrinterShourtcut>('printerShortcuts')
           : await Hive.openBox<PrinterShourtcut>('printerShortcuts');
-
-      await box.clear(); // مسح القديم
-      await box.addAll(printerShortcuts); // إضافة الجديد دفعة واحدة
-
+      await box.clear();
+      await box.addAll(printerShortcuts);
       debugPrint(
         '[AppRepository.putPrinterFromCash] Saved ${printerShortcuts.length} shortcuts successfully.',
       );
@@ -136,6 +125,9 @@ class AppRepository {
         '/printoo/search',
         queryParameters: {'q': query},
       );
+
+      debugPrint('[AppRepository.searchCustomers] Response: ${r.data}');
+      debugPrint('-----------------------------------');
       return (r.data['results'] as List? ?? [])
           .map((e) => Customer.fromJson(e))
           .toList();
@@ -153,13 +145,31 @@ class AppRepository {
     }
   }
 
+  Future<List<Customer>> getRecentChats() async {
+    try {
+      final r = await ApiClient.dio.get('/printoo/recent');
+      return (r.data['results'] as List? ?? [])
+          .map((e) => Customer.fromJson(e))
+          .toList();
+    } on DioException catch (e, stack) {
+      debugPrint('[AppRepository.getRecentChats] DioException: ${e.message}');
+      debugPrint('  → status : ${e.response?.statusCode}');
+      debugPrint('  → body   : ${e.response?.data}');
+      debugPrint('  → stack  : $stack');
+      rethrow;
+    } catch (e, stack) {
+      debugPrint('[AppRepository.getRecentChats] Unexpected error: $e');
+      debugPrint('  → stack  : $stack');
+      rethrow;
+    }
+  }
+
   // ─── Fetch Media ──────────────────────────────────────────────────────────
   Future<MediaFetchResult> fetchMedia(
     String chatId,
     dynamic daysLookback,
   ) async {
     try {
-      // print('=======\n $chatId');
       final r = await ApiClient.dio.post(
         '/printoo/fetch-media',
         data: {'chatId': chatId, 'daysLookback': daysLookback},
@@ -207,6 +217,12 @@ class AppRepository {
   }
 
   // ─── Print Jobs ───────────────────────────────────────────────────────────
+  //
+  // UPDATED: `customOverride` now includes `startPage` and `endPage` for
+  // document-type files when a custom range was set by the operator.
+  // The Node.js backend should pass these to Ghostscript as:
+  //   -dFirstPage=<startPage> -dLastPage=<endPage>
+  //
   Future<void> printJobs({
     required String printerName,
     required bool blankPageSeparator,
@@ -216,22 +232,39 @@ class AppRepository {
       debugPrint(
         '[AppRepository.printJobs] Sending ${jobs.length} job(s) to "$printerName"',
       );
+
       await ApiClient.dio.post(
         '/printoo/print',
         data: {
           'printer': printerName,
           'blankPageSeparator': blankPageSeparator,
-          'files': jobs
-              .map(
-                (j) => {
-                  'type': j.type,
-                  'absolutePath': j.absolutePath,
-                  'customOverride': {'copies': j.copies, 'duplex': j.duplex},
-                },
-              )
-              .toList(),
+          'files': jobs.map((j) {
+            final override = <String, dynamic>{
+              'copies': j.copies,
+              'duplex': j.duplex,
+            };
+
+            // Attach page-range only for documents with a non-default range
+            if (j.type == 'document') {
+              final effectiveStart = j.startPage ?? 1;
+              final effectiveEnd = j.endPage ?? j.pages;
+
+              // Only send if the operator actually restricted the range
+              if (effectiveStart != 1 || effectiveEnd != j.pages) {
+                override['startPage'] = effectiveStart;
+                override['endPage'] = effectiveEnd;
+              }
+            }
+
+            return {
+              'type': j.type,
+              'absolutePath': j.absolutePath,
+              'customOverride': override,
+            };
+          }).toList(),
         },
       );
+
       debugPrint('[AppRepository.printJobs] Print job accepted by server.');
     } on DioException catch (e, stack) {
       debugPrint('[AppRepository.printJobs] DioException: ${e.message}');

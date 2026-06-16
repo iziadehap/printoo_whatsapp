@@ -31,7 +31,7 @@ class TopBar extends ConsumerWidget {
           const Icon(Icons.print_rounded, color: AppColors.accent, size: 18),
           const SizedBox(width: 10),
           const Text(
-            'PRINT BOT POS',
+            'PRONTOO WHATSAPP',
             style: TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w800,
@@ -47,7 +47,7 @@ class TopBar extends ConsumerWidget {
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Text(
-              'v6.0.0',
+              'v2.0.0',
               style: TextStyle(
                 color: AppColors.textMuted,
                 fontSize: 10,
@@ -103,7 +103,7 @@ class TopBar extends ConsumerWidget {
           // ─── أزرار التحكم والعمليات ───
           TopBarBtn(
             icon: Icons.settings_outlined,
-            label: 'Settings',
+            label: null,
             onPressed: () => _openSettings(context, ref),
           ),
           const SizedBox(width: 8),
@@ -114,16 +114,15 @@ class TopBar extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 14),
-            child: VerticalDivider(color: AppColors.border, width: 1),
-          ),
+          // const Padding(
+          //   padding: EdgeInsets.symmetric(vertical: 14),
+          //   child: VerticalDivider(color: AppColors.border, width: 1),
+          // ),
           const SizedBox(width: 8),
 
           TopBarBtn(
             icon: Icons.logout_rounded,
             label: 'Logout',
-            isDanger: true,
             onPressed: () => _handleLogout(context, ref),
           ),
         ],
@@ -211,10 +210,8 @@ class TopBar extends ConsumerWidget {
       try {
         await ref.read(appRepositoryProvider).logout();
         if (context.mounted) {
-          _snack(context, 'Logging out, resetting terminal...');
+          _snack(context, 'Logged out successfully.');
         }
-        await Future.delayed(const Duration(seconds: 1));
-        exit(0);
       } catch (e) {
         if (context.mounted) {
           _snack(context, 'Logout failed: ${e.toString()}', isError: true);
@@ -307,33 +304,26 @@ class PulsingDotState extends State<PulsingDot>
   }
 }
 
-// ─── كود الزر المحسن بالكامل مع الـ Hover والـ InkWell السليم ───
 class TopBarBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-  final bool isDanger;
+  IconData icon;
+  String? label;
+  VoidCallback onPressed;
 
-  const TopBarBtn({
+  TopBarBtn({
     required this.icon,
     required this.label,
     required this.onPressed,
-    this.isDanger = false,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = isDanger ? AppColors.red : AppColors.textSecondary;
-
     return Material(
       color: Colors.transparent, // جعل الماتيريال شفاف لكي نتحكم بالخلفية بدقة
       child: InkWell(
         onTap: onPressed,
         borderRadius: BorderRadius.circular(6),
-        hoverColor: isDanger
-            ? AppColors.red.withOpacity(0.1)
-            : AppColors.border.withOpacity(0.4),
+        hoverColor: AppColors.border.withOpacity(0.4),
         highlightColor: AppColors.border.withOpacity(0.6),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -341,22 +331,24 @@ class TopBarBtn extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
               color: AppColors.border.withOpacity(0.5),
-              width: 0.8,
+              width: label == null ? 1.0 : 0.8,
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 14, color: baseColor),
+              Icon(icon, size: 14, color: AppColors.textSecondary),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isDanger ? AppColors.red : AppColors.textPrimary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              label == null
+                  ? const SizedBox()
+                  : Text(
+                      label!,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
             ],
           ),
         ),

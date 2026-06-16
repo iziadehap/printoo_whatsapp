@@ -46,7 +46,7 @@ class _PdfThumbnailState extends State<PdfThumbnail> {
     try {
       final document = await PdfDocument.openFile(widget.absolutePath);
       final page = await document.getPage(1);
-      
+
       // Render the page to an image.
       // We scale the size slightly for better resolution quality.
       final pageImage = await page.render(

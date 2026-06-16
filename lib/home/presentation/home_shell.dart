@@ -7,6 +7,7 @@ import 'package:printoo_whatsapp/home/presentation/widgets/bottom_bar.dart';
 import 'package:printoo_whatsapp/home/presentation/widgets/main_panel.dart';
 import 'package:printoo_whatsapp/home/presentation/widgets/sidebar.dart';
 import 'package:printoo_whatsapp/home/presentation/widgets/top_bar.dart';
+import 'package:printoo_whatsapp/home/presentation/widgets/customer_order_dialog.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
@@ -94,39 +95,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     );
   }
 
-  void _triggerPrint(BuildContext context) async {
-    final files = ref.read(mediaProvider).valueOrNull ?? [];
-    final selected = files.where((f) => f.selected).toList();
-    if (selected.isEmpty) {
-      _snack(context, 'No files selected for printing.', isError: true);
+  void _triggerPrint(BuildContext context) {
+    final customer = ref.read(selectedCustomerProvider);
+    if (customer == null) {
+      _snack(context, 'No customer selected.', isError: true);
       return;
     }
-    final printer = ref.read(activePrinterProvider);
-    if (printer == null) {
-      _snack(context, 'No printer selected.', isError: true);
-      return;
-    }
-    final blankSep = ref.read(blankPageSeparatorProvider);
-    try {
-      debugPrint(
-        '[HomeShell] Sending print job: printer=$printer, files=${selected.length}',
-      );
-      await ref
-          .read(appRepositoryProvider)
-          .printJobs(
-            printerName: printer,
-            blankPageSeparator: blankSep,
-            jobs: selected,
-          );
-      debugPrint('[HomeShell] Print job sent successfully.');
-      if (context.mounted) _snack(context, 'Print job sent successfully!');
-    } catch (e, stack) {
-      debugPrint('[HomeShell] Print failed: $e');
-      debugPrint('  → stack: $stack');
-      if (context.mounted) {
-        _snack(context, 'Print failed: ${e.toString()}', isError: true);
-      }
-    }
+    showCustomerOrderDialog(context: context, ref: ref, customer: customer);
   }
 
   void _snack(BuildContext context, String msg, {bool isError = false}) {

@@ -27,6 +27,10 @@ dependencies:
   shimmer: ^3.0.0
   path_provider: ^2.1.5
   window_manager: ^0.5.1
+  cached_network_image: ^3.4.1
+  socket_io_client: ^3.1.6
+  fullscreen_image_viewer: ^1.2.0
+  pdfrx: ^1.0.101
 
 dev_dependencies:
   flutter_test:
