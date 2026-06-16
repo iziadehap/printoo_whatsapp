@@ -120,11 +120,11 @@ class TopBar extends ConsumerWidget {
           // ),
           const SizedBox(width: 8),
 
-          TopBarBtn(
-            icon: Icons.logout_rounded,
-            label: 'Logout',
-            onPressed: () => _handleLogout(context, ref),
-          ),
+          // TopBarBtn(
+          //   icon: Icons.logout_rounded,
+          //   label: 'Logout',
+          //   onPressed: () => _handleLogout(context, ref),
+          // ),
         ],
       ),
     );
